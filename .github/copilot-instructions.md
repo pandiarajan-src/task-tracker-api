@@ -1,80 +1,94 @@
 # Task Tracker Project
 
-This project is a simple task tracker application built with React and FastAPI. It allows users to create, edit, and delete tasks, as well as mark them as completed. The application uses a RESTful API to manage tasks on the backend, and it is designed to be responsive and user-friendly.
+A simple task tracker API built with FastAPI and SQLite, following clean architecture principles with comprehensive testing.
 
-## Features
-- Create, edit, and delete tasks
-- Mark tasks as completed
-- Responsive design for mobile and desktop
-- RESTful API for backend management
+## Code Style
 
-## Technologies Used
-- Frontend: React, TypeScript, CSS
-- Backend: FastAPI, Python
-- Package Management: uv (Python)
-- Database: SQLite
-- Testing: Jest, Pytest
+**Naming Conventions:**
+- Variables/functions: `camelCase` (JS) or `snake_case` (Python)
+- Classes: `PascalCase` (`TaskCreate`, `TaskResponse`)
+- Files: `snake_case` (`test_main.py`, `task_id`)
+- Components: `PascalCase` (React components when added)
 
-## Installation
-1. Clone the repository:
-```bash
-git clone <repository-url>
+**Key Patterns from Codebase:**
+- See [main.py](backend/main.py) for FastAPI route structure
+- See [schemas.py](backend/schemas.py) for Pydantic inheritance pattern
+- See [test_main.py](backend/test_main.py) for test naming: `test_[action]_[condition]_[expected_result]`
+
+## Architecture
+
+**Backend Structure (FastAPI + SQLAlchemy):**
 ```
-2. Navigate to the project directory:
-```bash
-cd task-tracker-api
+backend/
+├── main.py          # FastAPI app with CRUD routes
+├── database.py      # SQLAlchemy models + session management  
+├── schemas.py       # Pydantic request/response models
+└── test_main.py     # Comprehensive pytest suite
 ```
-3. Install frontend dependencies:
+
+**Key Patterns:**
+- **Database**: SQLite with SQLAlchemy ORM, timezone-aware timestamps
+- **API Design**: RESTful CRUD with dependency injection: `db: Session = Depends(get_db)`
+- **Validation**: Pydantic schemas with inheritance (`TaskBase` → `TaskCreate`/`TaskUpdate`)
+- **Updates**: Partial updates using `model_dump(exclude_unset=True)`
+
+## Build and Test
+
+**Setup:**
 ```bash
-cd frontend
-npm install
+cd backend
+uv sync --dev
 ```
-4. Install backend dependencies:
-```bash
-cd ../backend
-uv sync
-```
-5. Run the backend server:
+
+**Run Server:**
 ```bash
 uv run uvicorn main:app --reload
 ```
-6. Run the frontend development server:
+
+**Testing (ALWAYS run before claiming code works):**
 ```bash
-cd ../frontend
-npm start
+uv run pytest              # Basic tests
+uv run pytest -v          # Verbose output  
+uv run pytest --cov       # With coverage (96% target)
 ```
 
-## Development Principles
-This is a simple task tracker focused on core functionality. The frontend uses React/TypeScript and the backend uses FastAPI with SQLite. Keep the codebase maintainable and well-tested.
+## Project Conventions
 
-## Coding Standards
-- Use camelCase for variable and function names
-- Use PascalCase for component names in React
-- Keep functions small and focused on a single task
-- Use descriptive names for variables and functions
-- Avoid magic numbers; use constants with descriptive names
-- Use latest versions of libraries and idiomatic approaches
-- Keep it simple - NEVER over-engineer, ALWAYS simplify
-- Use uv for all Python package management and script execution - never use pip or python directly
-- **TESTING REQUIRED**: All features must be thoroughly tested and validated before claiming they work
-- Write tests first when adding new features
-- Run full test suite before any commits
+**Database Models** (see [database.py](backend/database.py)):
+- Use `Base = declarative_base()`
+- Auto-timestamps: `created_at`, `updated_at` with `datetime.now(timezone.utc)`
+- Primary keys with `index=True`
 
-## Testing
-Run tests before claiming any feature is working:
-```bash
-# Frontend tests
-cd frontend
-npm test
-
-# Backend tests  
-cd backend
-uv run pytest
+**FastAPI Routes** (see [main.py](backend/main.py)):
+```python
+@app.post("/tasks", response_model=TaskResponse, status_code=status.HTTP_201_CREATED)
+def create_task(task: TaskCreate, db: Session = Depends(get_db)):
 ```
 
-## Contributing
-Contributions welcome! Requirements:
-1. Follow coding standards above
-2. **Include tests for all new features or bug fixes**
-3. Ensure all existing tests pass
-4. Keep changes focused and simple
+**Testing** (see [test_main.py](backend/test_main.py)):
+- Each endpoint needs happy path AND error case tests
+- Use `TestClient` with database override
+- Fixture pattern for database cleanup
+
+**Error Handling:**
+- HTTPException with specific messages: `f"Task with id {task_id} not found"`
+- Proper HTTP status codes (404, 422, 201, etc.)
+
+## Integration Points
+
+**Database:** SQLite with connection string `sqlite:///./tasks.db`
+**API Docs:** Auto-generated at `http://localhost:8000/docs`
+
+## Security
+
+**Input Validation:** All requests validated through Pydantic schemas
+**Database:** Use parameterized queries via SQLAlchemy (prevents SQL injection)
+
+---
+
+## Critical Rules
+
+- **Use `uv` exclusively** - never `pip` or `python` directly
+- **Test everything** - run `uv run pytest` before claiming features work  
+- **Follow existing patterns** - maintain consistency with [main.py](backend/main.py) structure
+- **Keep it simple** - avoid over-engineering, focus on core functionality
