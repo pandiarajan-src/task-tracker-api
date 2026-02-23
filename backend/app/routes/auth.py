@@ -38,6 +38,7 @@ def register_user(
 ) -> UserResponse:
     """Register a new user account."""
     logger.info(f"User registration attempt for email: {user_create.email}")
+    # Allow HTTPExceptions from the service layer to surface for client feedback.
     
     try:
         user = AuthService.create_user(db, user_create)
@@ -65,6 +66,7 @@ def login_user(
 ) -> Token:
     """Authenticate user and return JWT tokens."""
     logger.info(f"Login attempt for email: {user_login.email}")
+    # Ensure token creation only happens after successful authentication.
     
     try:
         token = AuthService.login_user(db, user_login)
@@ -92,6 +94,7 @@ def refresh_token(
 ) -> Token:
     """Refresh access token using refresh token."""
     logger.info("Token refresh attempt")
+    # Verify the refresh token before issuing new credentials.
     
     try:
         new_token = AuthService.refresh_access_token(db, token_refresh.refresh_token)
@@ -118,6 +121,7 @@ def get_current_user_info(
 ) -> UserResponse:
     """Get current user information."""
     logger.info(f"User info request for: {current_user.email}")
+    # Return the sanitized user data provided by the dependency.
     
     return UserResponse.model_validate(current_user)
 
@@ -190,6 +194,7 @@ def create_default_user(
 ) -> UserResponse:
     """Create default user for development/migration purposes."""
     logger.info("Creating default user")
+    # Guard creation so migrations only run when no users exist yet.
     
     try:
         user = AuthService.create_default_user(db)

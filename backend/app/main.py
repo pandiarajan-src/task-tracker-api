@@ -86,6 +86,7 @@ app.include_router(auth_router, prefix=settings.api_v1_prefix)
 @app.get("/")
 def read_root():
     """Root endpoint with API information."""
+    # Provide metadata so clients can discover the API version and prefix.
     logger.debug("Root endpoint accessed")
     return {
         "message": settings.app_name,
@@ -105,6 +106,7 @@ def get_tasks(
     current_user: User | None = Depends(get_auth_dependency())
 ):
     """Get all tasks with optional pagination and priority filtering."""
+    # Determine current user scope for multi-tenant task visibility.
     user_id = current_user.id if current_user else None
     
     if priority:
@@ -126,6 +128,7 @@ def get_task(
     current_user: User | None = Depends(get_auth_dependency())
 ):
     """Get a specific task by ID."""
+    # Resolve user context to enforce scoped access and logging.
     user_id = current_user.id if current_user else None
     logger.info(f"Fetching task with id: {task_id}, user_id: {user_id}")
     
@@ -152,6 +155,7 @@ def create_task(
     current_user: User | None = Depends(get_auth_dependency())
 ):
     """Create a new task."""
+    # Associate the new task with the authenticated user (if any).
     user_id = current_user.id if current_user else None
     logger.info(f"Creating new task: {task.title}, user_id: {user_id}")
     
@@ -170,6 +174,7 @@ def update_task(
     current_user: User | None = Depends(get_auth_dependency())
 ):
     """Update an existing task."""
+    # Confirm the task exists within the user's accessible scope before updating.
     user_id = current_user.id if current_user else None
     logger.info(f"Updating task with id: {task_id}, user_id: {user_id}")
     
@@ -194,6 +199,7 @@ def delete_task(
     current_user: User | None = Depends(get_auth_dependency())
 ):
     """Delete a task by ID."""
+    # Validate that the task belongs to the requester before deletion.
     user_id = current_user.id if current_user else None
     logger.info(f"Deleting task with id: {task_id}, user_id: {user_id}")
     
