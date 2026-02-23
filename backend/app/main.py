@@ -12,6 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from sqlalchemy.orm import Session
+from starlette.middleware.httpsredirect import HTTPSRedirectMiddleware
 
 from app.config import settings
 from app.database import User, create_tables, get_db
@@ -63,6 +64,10 @@ app.add_middleware(
     allow_methods=settings.cors_allow_methods,
     allow_headers=settings.cors_allow_headers,
 )
+
+# Enforce HTTPS in production environments when enabled
+if settings.enforce_https:
+    app.add_middleware(HTTPSRedirectMiddleware)
 
 
 # Logging middleware

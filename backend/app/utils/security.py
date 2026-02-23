@@ -12,10 +12,19 @@ from jose import JWTError, jwt
 from app.config import settings
 
 
+# Precomputed hash used to mitigate timing attacks when a user is missing.
+DUMMY_PASSWORD_HASH = bcrypt.hashpw(
+    b"invalid-password",
+    bcrypt.gensalt(rounds=settings.bcrypt_rounds)
+).decode("utf-8")
+
+
 def hash_password(password: str) -> str:
     """Hash a password with bcrypt."""
     # Convert password to bytes
     password_bytes = password.encode('utf-8')
+    if len(password_bytes) > 72:
+        raise ValueError("Password exceeds bcrypt maximum length")
     # Generate salt and hash
     salt = bcrypt.gensalt(rounds=settings.bcrypt_rounds)
     hashed = bcrypt.hashpw(password_bytes, salt)

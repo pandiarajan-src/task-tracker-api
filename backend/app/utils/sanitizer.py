@@ -1,6 +1,6 @@
 """
 Input sanitization utilities for cleaning and validating user input.
-Prevents XSS, SQL injection, and other security vulnerabilities.
+Heuristic checks flag suspicious patterns but are not a security boundary.
 """
 
 import logging
@@ -80,6 +80,7 @@ def sanitize_string(text: str | None) -> str | None:
 def check_sql_injection(text: str | None) -> bool:
     """
     Check if text contains potential SQL injection patterns.
+    This is a best-effort heuristic and does not replace parameterized queries.
     
     Args:
         text: Input string to check

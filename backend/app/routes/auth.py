@@ -148,7 +148,7 @@ def request_password_reset(
         
         # TODO: Send email with reset token
         # For now, we'll log it (in production, send via email service)
-        logger.info(f"Password reset token (TODO: send via email): {reset_token}")
+        logger.info("Password reset token generated (TODO: send via email)")
     
     # Always return success to prevent email enumeration
     return {"message": "If the email exists, a password reset link has been sent"}

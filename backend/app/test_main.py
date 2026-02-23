@@ -3,6 +3,12 @@ Comprehensive test suite for Task Tracker API.
 Tests all CRUD endpoints with happy path and error cases.
 """
 
+import os
+
+os.environ.setdefault("JWT_SECRET_KEY", "test-secret-key")
+os.environ.setdefault("AUTH_REQUIRED", "false")
+os.environ.setdefault("ENFORCE_HTTPS", "false")
+
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine

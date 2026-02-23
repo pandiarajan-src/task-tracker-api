@@ -3,6 +3,12 @@ Tests for input validation and sanitization.
 Tests custom validators, sanitization, and error handling.
 """
 
+import os
+
+os.environ.setdefault("JWT_SECRET_KEY", "test-secret-key")
+os.environ.setdefault("AUTH_REQUIRED", "false")
+os.environ.setdefault("ENFORCE_HTTPS", "false")
+
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine

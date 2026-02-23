@@ -162,7 +162,7 @@ class UserBase(BaseModel):
 
 class UserCreate(UserBase):
     """Schema for user registration with enhanced validation."""
-    password: str = Field(..., min_length=8, max_length=128)
+    password: str = Field(..., min_length=8, max_length=72)
 
     @field_validator("name")
     @classmethod
@@ -293,7 +293,7 @@ class PasswordResetRequest(BaseModel):
 class PasswordReset(BaseModel):
     """Schema for password reset with token."""
     token: str
-    new_password: str = Field(..., min_length=8, max_length=128)
+    new_password: str = Field(..., min_length=8, max_length=72)
 
     @field_validator("new_password")
     @classmethod

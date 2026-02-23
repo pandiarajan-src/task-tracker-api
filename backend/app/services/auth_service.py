@@ -14,6 +14,7 @@ from app.config import settings
 from app.database import User
 from app.schemas import Token, UserCreate, UserLogin, UserResponse
 from app.utils.security import (
+    DUMMY_PASSWORD_HASH,
     create_access_token,
     create_refresh_token,
     hash_password,
@@ -59,13 +60,13 @@ class AuthService:
         user = db.query(User).filter(
             and_(User.email == email, User.is_active == True)
         ).first()
-        
-        if not user:
+
+        hashed_password = user.hashed_password if user else DUMMY_PASSWORD_HASH
+        password_valid = verify_password(password, hashed_password)
+
+        if not user or not password_valid:
             return None
-        
-        if not verify_password(password, user.hashed_password):
-            return None
-        
+
         return user
 
     @staticmethod

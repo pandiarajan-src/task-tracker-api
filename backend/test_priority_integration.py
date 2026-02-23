@@ -2,6 +2,12 @@
 Integration tests for the task priority system.
 Simple, focused tests that prove the priority functionality works.
 """
+import os
+
+os.environ.setdefault("JWT_SECRET_KEY", "test-secret-key")
+os.environ.setdefault("AUTH_REQUIRED", "false")
+os.environ.setdefault("ENFORCE_HTTPS", "false")
+
 import pytest
 import json
 from fastapi.testclient import TestClient

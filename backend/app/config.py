@@ -35,8 +35,8 @@ class Settings(BaseSettings):
     # CORS Settings
     cors_origins: list[str] = ["http://localhost:3000", "http://localhost:5173"]
     cors_allow_credentials: bool = True
-    cors_allow_methods: list[str] = ["*"]
-    cors_allow_headers: list[str] = ["*"]
+    cors_allow_methods: list[str] = ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
+    cors_allow_headers: list[str] = ["Authorization", "Content-Type", "Accept"]
 
     # Rate Limiting
     rate_limit_enabled: bool = True
@@ -57,7 +57,7 @@ class Settings(BaseSettings):
     validation_log_enabled: bool = True
 
     # Authentication Settings
-    jwt_secret_key: str = "your-super-secret-jwt-key-change-in-production"
+    jwt_secret_key: str
     jwt_algorithm: str = "HS256"
     jwt_access_token_expire_minutes: int = 30
     jwt_refresh_token_expire_days: int = 7
@@ -67,7 +67,10 @@ class Settings(BaseSettings):
     bcrypt_rounds: int = 12
     
     # Feature Flags
-    auth_required: bool = False  # Gradual migration - auth is optional initially
+    auth_required: bool = True  # Secure-by-default; override via env for local dev/tests
+
+    # Transport Security
+    enforce_https: bool = True
     
     # Email Settings (for password reset)
     smtp_host: str = ""
