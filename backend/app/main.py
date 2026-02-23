@@ -84,7 +84,8 @@ app.include_router(auth_router, prefix=settings.api_v1_prefix)
 
 
 @app.get("/")
-def read_root():
+@limiter.limit(f"{settings.rate_limit_read_requests}/{settings.rate_limit_period}")
+def read_root(request: Request):
     """Root endpoint with API information."""
     logger.debug("Root endpoint accessed")
     return {
