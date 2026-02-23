@@ -1,0 +1,65 @@
+name: Backend Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend-tests.yml'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend-tests.yml'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v4
+      with:
+        version: "latest"
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+
+    - name: Install dependencies
+      working-directory: ./backend
+      run: |
+        uv sync --dev
+
+    - name: Run linter (ruff)
+      working-directory: ./backend
+      run: |
+        uv run ruff check app/
+      continue-on-error: true
+
+    - name: Run formatter check (ruff)
+      working-directory: ./backend
+      run: |
+        uv run ruff format --check app/
+      continue-on-error: true
+
+    - name: Run tests with coverage
+      working-directory: ./backend
+      run: |
+        uv run pytest app/test_main.py --cov=app --cov-report=xml --cov-report=term-missing
+
+    - name: Upload coverage reports
+      uses: codecov/codecov-action@v5
+      with:
+        file: ./backend/coverage.xml
+        flags: backend
+        name: backend-coverage
+      continue-on-error: true
+
+    - name: Check coverage threshold
+      working-directory: ./backend
+      run: |
+        uv run pytest app/test_main.py --cov=app --cov-fail-under=90
