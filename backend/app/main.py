@@ -9,15 +9,17 @@ from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
-from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
-from slowapi.util import get_remote_address
 from sqlalchemy.orm import Session
 
 from app.config import settings
-from app.database import create_tables, get_db
+from app.database import User, create_tables, get_db
+from app.dependencies.auth import get_auth_dependency
 from app.middleware.validation import ValidationMiddleware
-from app.schemas import TaskCreate, TaskResponse, TaskUpdate
+from app.rate_limiter import limiter
+from app.routes import auth_router
+from app.schemas import Priority, TaskCreate, TaskResponse, TaskUpdate
 from app.services import task_service
 
 # Configure logging
@@ -26,9 +28,6 @@ logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
 logger = logging.getLogger(__name__)
-
-# Rate limiter setup
-limiter = Limiter(key_func=get_remote_address)
 
 
 @asynccontextmanager
@@ -80,6 +79,10 @@ async def log_requests(request: Request, call_next):
     return response
 
 
+# Include routers
+app.include_router(auth_router, prefix=settings.api_v1_prefix)
+
+
 @app.get("/")
 def read_root():
     """Root endpoint with API information."""
@@ -92,21 +95,43 @@ def read_root():
 
 
 @app.get(f"{settings.api_v1_prefix}/tasks", response_model=list[TaskResponse])
-def get_tasks(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    """Get all tasks with optional pagination."""
-    logger.info(f"Fetching tasks - skip: {skip}, limit: {limit}")
-    tasks = task_service.get_all_tasks(db, skip=skip, limit=limit)
+@limiter.limit(f"{settings.rate_limit_read_requests}/{settings.rate_limit_period}")
+def get_tasks(
+    request: Request,
+    skip: int = 0, 
+    limit: int = 100, 
+    priority: Priority | None = None,
+    db: Session = Depends(get_db),
+    current_user: User | None = Depends(get_auth_dependency())
+):
+    """Get all tasks with optional pagination and priority filtering."""
+    user_id = current_user.id if current_user else None
+    
+    if priority:
+        logger.info(f"Fetching tasks - skip: {skip}, limit: {limit}, priority: {priority.value}, user_id: {user_id}")
+    else:
+        logger.info(f"Fetching tasks - skip: {skip}, limit: {limit}, user_id: {user_id}")
+    
+    tasks = task_service.get_all_tasks(db, skip=skip, limit=limit, priority_filter=priority, user_id=user_id)
     logger.info(f"Retrieved {len(tasks)} tasks")
     return tasks
 
 
 @app.get(f"{settings.api_v1_prefix}/tasks/{{task_id}}", response_model=TaskResponse)
-def get_task(task_id: int, db: Session = Depends(get_db)):
+@limiter.limit(f"{settings.rate_limit_read_requests}/{settings.rate_limit_period}")
+def get_task(
+    request: Request,
+    task_id: int, 
+    db: Session = Depends(get_db),
+    current_user: User | None = Depends(get_auth_dependency())
+):
     """Get a specific task by ID."""
-    logger.info(f"Fetching task with id: {task_id}")
-    task = task_service.get_task_by_id(db, task_id)
+    user_id = current_user.id if current_user else None
+    logger.info(f"Fetching task with id: {task_id}, user_id: {user_id}")
+    
+    task = task_service.get_task_by_id(db, task_id, user_id=user_id)
     if task is None:
-        logger.warning(f"Task with id {task_id} not found")
+        logger.warning(f"Task with id {task_id} not found for user {user_id}")
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail=f"Task with id {task_id} not found"
         )
@@ -119,21 +144,38 @@ def get_task(task_id: int, db: Session = Depends(get_db)):
     response_model=TaskResponse,
     status_code=status.HTTP_201_CREATED,
 )
-def create_task(task: TaskCreate, db: Session = Depends(get_db)):
+@limiter.limit(f"{settings.rate_limit_write_requests}/{settings.rate_limit_period}")
+def create_task(
+    request: Request,
+    task: TaskCreate, 
+    db: Session = Depends(get_db),
+    current_user: User | None = Depends(get_auth_dependency())
+):
     """Create a new task."""
-    logger.info(f"Creating new task: {task.title}")
-    db_task = task_service.create_new_task(db, task)
+    user_id = current_user.id if current_user else None
+    logger.info(f"Creating new task: {task.title}, user_id: {user_id}")
+    
+    db_task = task_service.create_new_task(db, task, user_id=user_id)
     logger.info(f"Task created successfully with id: {db_task.id}")
     return db_task
 
 
 @app.put(f"{settings.api_v1_prefix}/tasks/{{task_id}}", response_model=TaskResponse)
-def update_task(task_id: int, task_update: TaskUpdate, db: Session = Depends(get_db)):
+@limiter.limit(f"{settings.rate_limit_write_requests}/{settings.rate_limit_period}")
+def update_task(
+    request: Request,
+    task_id: int, 
+    task_update: TaskUpdate, 
+    db: Session = Depends(get_db),
+    current_user: User | None = Depends(get_auth_dependency())
+):
     """Update an existing task."""
-    logger.info(f"Updating task with id: {task_id}")
-    task = task_service.get_task_by_id(db, task_id)
+    user_id = current_user.id if current_user else None
+    logger.info(f"Updating task with id: {task_id}, user_id: {user_id}")
+    
+    task = task_service.get_task_by_id(db, task_id, user_id=user_id)
     if task is None:
-        logger.warning(f"Task with id {task_id} not found for update")
+        logger.warning(f"Task with id {task_id} not found for update by user {user_id}")
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail=f"Task with id {task_id} not found"
         )
@@ -144,12 +186,20 @@ def update_task(task_id: int, task_update: TaskUpdate, db: Session = Depends(get
 
 
 @app.delete(f"{settings.api_v1_prefix}/tasks/{{task_id}}")
-def delete_task(task_id: int, db: Session = Depends(get_db)):
+@limiter.limit(f"{settings.rate_limit_write_requests}/{settings.rate_limit_period}")
+def delete_task(
+    request: Request,
+    task_id: int, 
+    db: Session = Depends(get_db),
+    current_user: User | None = Depends(get_auth_dependency())
+):
     """Delete a task by ID."""
-    logger.info(f"Deleting task with id: {task_id}")
-    task = task_service.get_task_by_id(db, task_id)
+    user_id = current_user.id if current_user else None
+    logger.info(f"Deleting task with id: {task_id}, user_id: {user_id}")
+    
+    task = task_service.get_task_by_id(db, task_id, user_id=user_id)
     if task is None:
-        logger.warning(f"Task with id {task_id} not found for deletion")
+        logger.warning(f"Task with id {task_id} not found for deletion by user {user_id}")
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail=f"Task with id {task_id} not found"
         )

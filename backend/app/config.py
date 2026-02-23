@@ -42,6 +42,12 @@ class Settings(BaseSettings):
     rate_limit_enabled: bool = True
     rate_limit_times: int = 100  # requests
     rate_limit_seconds: int = 60  # per 60 seconds
+    
+    # Enhanced Rate Limiting by Operation Type
+    rate_limit_read_requests: int = 200  # GET operations
+    rate_limit_write_requests: int = 50  # POST/PUT/DELETE operations
+    rate_limit_auth_requests: int = 10   # Auth operations (login, register)
+    rate_limit_period: str = "minute"    # Rate limit time window
 
     # Validation Settings
     max_request_size: int = 1048576  # 1MB in bytes
@@ -49,6 +55,27 @@ class Settings(BaseSettings):
     enable_sql_sanitization: bool = True
     forbidden_words: list[str] = []
     validation_log_enabled: bool = True
+
+    # Authentication Settings
+    jwt_secret_key: str = "your-super-secret-jwt-key-change-in-production"
+    jwt_algorithm: str = "HS256"
+    jwt_access_token_expire_minutes: int = 30
+    jwt_refresh_token_expire_days: int = 7
+    
+    # Password Settings
+    password_min_length: int = 8
+    bcrypt_rounds: int = 12
+    
+    # Feature Flags
+    auth_required: bool = False  # Gradual migration - auth is optional initially
+    
+    # Email Settings (for password reset)
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_username: str = ""
+    smtp_password: str = ""
+    smtp_use_tls: bool = True
+    from_email: str = "noreply@tasktracker.com"
 
 
 # Global settings instance

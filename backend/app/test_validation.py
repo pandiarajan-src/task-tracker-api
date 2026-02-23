@@ -10,6 +10,7 @@ from sqlalchemy.orm import sessionmaker
 
 from app.database import Base, get_db
 from app.main import app
+from app.rate_limiter import limiter
 
 # Test database setup
 SQLALCHEMY_TEST_DATABASE_URL = "sqlite:///./test_validation.db"
@@ -28,14 +29,25 @@ def override_get_db():
         db.close()
 
 
-app.dependency_overrides[get_db] = override_get_db
-
 client = TestClient(app)
+
+
+@pytest.fixture(scope="function", autouse=True)
+def override_db_dependency():
+    """Ensure each test uses the module's test database override."""
+    app.dependency_overrides[get_db] = override_get_db
+    if hasattr(limiter, "enabled"):
+        limiter.enabled = False
+    yield
+    if hasattr(limiter, "enabled"):
+        limiter.enabled = True
+    app.dependency_overrides.pop(get_db, None)
 
 
 @pytest.fixture(autouse=True)
 def setup_database():
     """Create tables before each test and drop after."""
+    Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
     yield
     Base.metadata.drop_all(bind=engine)
