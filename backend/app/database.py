@@ -84,6 +84,20 @@ class Task(Base):
     # user = relationship("User", back_populates="tasks")
 
 
+class Comment(Base):
+    """Comment model for task comments."""
+
+    __tablename__ = "comments"
+
+    id = Column(Integer, primary_key=True, index=True)
+    task_id = Column(Integer, ForeignKey("tasks.id"), nullable=False, index=True)
+    author = Column(String, nullable=False)
+    body = Column(String, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(UTC), nullable=False)
+
+    # Relationship intentionally omitted to avoid SQLite FK issues in tests
+
+
 def create_tables():
     """Create all tables in the database."""
     Base.metadata.create_all(bind=engine)

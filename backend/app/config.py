@@ -9,7 +9,11 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     """Application settings loaded from environment variables."""
 
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore",  # Allow unrelated env vars (e.g., CI tokens)
+    )
 
     # App Info
     app_name: str = "Task Tracker API"
