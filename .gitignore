@@ -42,3 +42,4 @@ backend/alembic/versions/*.pyc
 
 # Pre-commit
 .pre-commit-config.yaml.bak
+.agent-log.txt

@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "hooks": {
+    "sessionEnd": [
+      {
+        "type": "command",
+        "bash": "echo '🛡️ Running security scan (pip-audit)...' >> .agent-log.txt && cd backend && uv run pip-audit --strict >> ../.agent-log.txt 2>&1",
+        "timeoutSec": 120
+      }
+    ]
+  }
+}

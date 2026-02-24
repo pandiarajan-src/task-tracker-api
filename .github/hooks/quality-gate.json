@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "hooks": {
+    "sessionStart": [
+      {
+        "type": "command",
+        "bash": "echo \"🚀 Agent session started at $(date)\" >> .agent-log.txt"
+      }
+    ],
+    "sessionEnd": [
+      {
+        "type": "command",
+        "bash": "echo '🔍 Running quality gate (ruff + pytest)...' >> .agent-log.txt && cd backend && (uv run ruff check && uv run pytest -q) >> ../.agent-log.txt 2>&1",
+        "timeoutSec": 120
+      }
+    ],
+    "userPromptSubmitted": [
+      {
+        "type": "command",
+        "bash": "echo 'Prompt submitted' >> .agent-log.txt"
+      }
+    ]
+  }
+}
